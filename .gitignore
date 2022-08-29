@@ -62,6 +62,6 @@ override.tf.json
 .terraformrc
 terraform.rc
 terraform
-*.tfvars
+**/*.tfvars
 
 local
