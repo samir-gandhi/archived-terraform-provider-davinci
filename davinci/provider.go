@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/samir-gandhi/davinci-client-go"
+	"github.com/samir-gandhi/davinci-client-go/davinci"
 )
 
 // Provider -
@@ -24,8 +24,10 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("HASHICUPS_PASSWORD", nil),
 			},
 		},
-		ResourcesMap:         map[string]*schema.Resource{},
-		DataSourcesMap:       map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{},
+		DataSourcesMap: map[string]*schema.Resource{
+			"davinci_conn": dataSourceConnection(),
+		},
 		ConfigureContextFunc: providerConfigure,
 	}
 }
@@ -35,6 +37,12 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	password := d.Get("password").(string)
 
 	var diags diag.Diagnostics
+
+	diags = append(diags, diag.Diagnostic{
+		Severity: diag.Warning,
+		Summary:  "Warning Message Summary",
+		Detail:   "This is the detailed warning message from providerConfigure",
+	})
 
 	var c *davinci.Client
 
