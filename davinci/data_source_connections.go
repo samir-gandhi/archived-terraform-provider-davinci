@@ -2,25 +2,27 @@ package davinci
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	dv "github.com/samir-gandhi/davinci-client-go/davinci"
 )
 
-func dataSourceConnection() *schema.Resource {
+func dataSourceConnections() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: dataSourceConnectionRead,
+		ReadContext: dataSourceConnectionsRead,
 		Schema: map[string]*schema.Schema{
-			"dv_connection": &schema.Schema{
+			"connections": &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"connection_id": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Computed: true,
 						},
 						"connector_id": &schema.Schema{
 							Type:     schema.TypeString,
@@ -42,39 +44,50 @@ func dataSourceConnection() *schema.Resource {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						//TODO - implement properties
-						// "properties": &schema.Schema{
-						// 	Type:     schema.TypeMap,
-						// 	Computed: true,
-						// 	Elem: &schema.Resource{
-						// 		Schema: map[string]*schema.Schema{
-						// 			"awsAccessKey": &schema.Schema{
-						// 				Type:     schema.TypeMap,
-						// 				Computed: true,
-						// 				Elem:     &schema.Resource{
-						// 					Schema: map[string]*schema.Schema{
-						// 						"type":
-						// 					},
-						// 				},
-						// 			},
-						// 		},
-						// 	},
-						// },
+						"properties": &schema.Schema{
+							Type:     schema.TypeMap,
+							Computed: true,
+						},
 					},
 				},
+				//TODO - implement properties
+				// "properties": &schema.Schema{
+				// 	Type:     schema.TypeMap,
+				// 	Computed: true,
+				// 	Elem: &schema.Resource{
+				// 		Schema: map[string]*schema.Schema{
+				// 			"awsAccessKey": &schema.Schema{
+				// 				Type:     schema.TypeMap,
+				// 				Computed: true,
+				// 				Elem:     &schema.Resource{
+				// 					Schema: map[string]*schema.Schema{
+				// 						"type":
+				// 					},
+				// 				},
+				// 			},
+				// 		},
+				// 	},
+				// },
 			},
 		},
 	}
 }
 
-func dataSourceConnectionRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceConnectionsRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*dv.Client)
-
 	var diags diag.Diagnostics
+	diags = append(diags, diag.Diagnostic{
+		Severity: diag.Warning,
+		Summary:  "Warning Message Summary",
+		Detail:   "This is the detailed warning message from dataSourceConnectionRead",
+	})
 
-	connectionID := d.Get("connection_id").(string)
-
-	conn, err := c.ReadConnection(&c.CompanyID, connectionID)
+	// connectionID := d.Get("connection_id")
+	// if connectionID == nil {
+	// 	return diag.Errorf("error: connection_id is nil")
+	// }
+	fmt.Printf("COMPANY ID IS %v", c.CompanyID)
+	resp, err := c.ReadConnections(&c.CompanyID, nil)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -83,13 +96,29 @@ func dataSourceConnectionRead(ctx context.Context, d *schema.ResourceData, m int
 	// if err := d.Set("items", orderItems); err != nil {
 	// 	return diag.FromErr(err)
 	// }
-	ois := make([]interface{}, len(*orderItems), len(*orderItems))
+	// ois := make([]interface{}, len(*orderItems), len(*orderItems))
 
-	if err := d.Set("conn", conn); err != nil {
+	conns := make([]interface{}, len(resp), len(resp))
+	for i, connItem := range resp {
+		thisResp := resp[i]
+		thisResp.Properties = nil
+		resp[i] = thisResp
+		conn := make(map[string]interface{})
+		conn["connection_id"] = connItem.ConnectionID
+		conn["connector_id"] = connItem.ConnectorID
+		conn["name"] = connItem.Name
+		conn["created_date"] = connItem.CreatedDate
+		conn["company_id"] = connItem.CompanyID
+		//TODO implement properties
+		// conn["properties"] = connItem.Properties
+		conns[i] = conn
+	}
+
+	if err := d.Set("connections", conns); err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.SetId(strconv.FormatInt(conn.CreatedDate, 10))
+	d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
 	return diags
 }
 
