@@ -1,25 +1,32 @@
 terraform {
   required_providers {
-    davinci = {
+    // named pingonedv for now until merged to actual pingone provider
+    dv = {
       version = "0.0.1"
       source  = "samir-gandhi/pingidentity/davinci"
     }
   }
 }
 
-provider "davinci" {
+provider "dv" {
   username   = var.dv_username
   password   = var.dv_password
   company_id = "dcf2011c-d0fc-4b59-81bc-518c8eec3dab"
 }
 
-data "davinci_connections" "all" {
+data "dv_connections" "all" {
 }
 
-output "connections" {
-  value = data.davinci_connections.all
+output "dv_connections" {
+  value = data.dv_connections.all.connections.0
 
 }
+
+# resource "dv_connection" "annotation" {
+#   name         = "myAnnotationConnector"
+#   connector_id = "annotationConnector"
+# }
+
 
 # output "connection_one" {
 #   value = data.davinci_connection

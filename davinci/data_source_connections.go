@@ -3,6 +3,7 @@ package davinci
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -44,9 +45,97 @@ func dataSourceConnections() *schema.Resource {
 							Type:     schema.TypeInt,
 							Computed: true,
 						},
-						"properties": &schema.Schema{
-							Type:     schema.TypeMap,
-							Computed: true,
+						"properties": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"prop_name": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"value_string": {
+										Type:     schema.TypeString,
+										Optional: true,
+									},
+									"value_bool": {
+										Type:     schema.TypeBool,
+										Optional: true,
+									},
+								},
+							},
+							// Elem: &schema.Schema{
+							// 	Type:     schema.TypeSet,
+							// 	MaxItems: 1,
+							// 	Optional: true,
+							// 	Elem: &schema.Resource{
+							// 		Schema: map[string]*schema.Schema{
+							// 			"value_string": {
+							// 				//TODO: Value is not always string.
+							// 				//In SDK it's defined at runtime.
+							// 				Type:     schema.TypeString,
+							// 				Optional: true,
+							// 			},
+							// 		},
+							// 	},
+							// },
+
+							// Elem: &schema.Resource{
+							// 	Schema: map[string]*schema.Schema{
+							// 		"prop_name": {
+							// 			Type:     schema.TypeSet,
+							// 			Optional: true,
+							// 			MaxItems: 1,
+							// 			//TODO: implement all possibilities here
+							// 			Elem: &schema.Resource{
+							// 				Schema: map[string]*schema.Schema{
+							// "display_name": {
+							// 	Type:     schema.TypeString,
+							// 	Optional: true,
+							// },
+							// "info": {
+							// 	Type:     schema.TypeString,
+							// 	Optional: true,
+							// },
+							// "description": {
+							// 	Type:     schema.TypeString,
+							// 	Optional: true,
+							// },
+							// "preferred_control_type": {
+							// 	Type:     schema.TypeList,
+							// 	Optional: true,
+							// 	MaxItems: 1,
+							// 	Elem: &schema.Schema{
+							// 		Type: schema.TypeString,
+							// 	},
+							// },
+							// "enableParameters": {
+							// 	Type:     schema.TypeBool,
+							// 	Optional: true,
+							// },
+							// // implementing only value_string for now.
+
+							// "placeholder": {
+							// 	Type:     schema.TypeString,
+							// 	Optional: true,
+							// },
+							// "placeholderAdd": {
+							// 	Type:     schema.TypeString,
+							// 	Optional: true,
+							// },
+							// "userViewPreferredControlType": {
+							// 	Type:     schema.TypeString,
+							// 	Optional: true,
+							// },
+							// "constructType": {
+							// 	Type:     schema.TypeList,
+							// 	Optional: true,
+							// 	MaxItems: 1,
+							// 	Elem: &schema.Schema{
+							// 		Type: schema.TypeString,
+							// 	},
+							// },
+
 						},
 					},
 				},
@@ -86,7 +175,7 @@ func dataSourceConnectionsRead(ctx context.Context, d *schema.ResourceData, m in
 	// if connectionID == nil {
 	// 	return diag.Errorf("error: connection_id is nil")
 	// }
-	fmt.Printf("COMPANY ID IS %v", c.CompanyID)
+	log.Printf("COMPANY ID IS %v", c.CompanyID)
 	resp, err := c.ReadConnections(&c.CompanyID, nil)
 	if err != nil {
 		return diag.FromErr(err)
@@ -98,22 +187,95 @@ func dataSourceConnectionsRead(ctx context.Context, d *schema.ResourceData, m in
 	// }
 	// ois := make([]interface{}, len(*orderItems), len(*orderItems))
 
+	// log.Printf("len(resp) is: %v\n", len(resp))
 	conns := make([]interface{}, len(resp), len(resp))
 	for i, connItem := range resp {
-		thisResp := resp[i]
-		thisResp.Properties = nil
-		resp[i] = thisResp
 		conn := make(map[string]interface{})
-		conn["connection_id"] = connItem.ConnectionID
-		conn["connector_id"] = connItem.ConnectorID
-		conn["name"] = connItem.Name
-		conn["created_date"] = connItem.CreatedDate
-		conn["company_id"] = connItem.CompanyID
-		//TODO implement properties
-		// conn["properties"] = connItem.Properties
+		conn = map[string]interface{}{
+			"connection_id": connItem.ConnectionID,
+			"connector_id":  connItem.ConnectorID,
+			"name":          connItem.Name,
+			"created_date":  connItem.CreatedDate,
+			"company_id":    connItem.CompanyID,
+		}
+		// log.Println("Im here 1")
+
+		if connItem.Properties != nil {
+			connProps := []map[string]interface{}{}
+			// fmt.Printf("connItem.Properties is: %v \n", connItem.Properties)
+			for propi, propv := range connItem.Properties {
+				// log.Printf("v is %v\n", propv)
+				// fmt.Printf("checking propi: %v \n and propv: %q \n", propi, propv)
+				pMap := propv.(map[string]interface{})
+				// log.Printf("here at pMap")
+				if pMap == nil {
+					return diag.Errorf("Unable to assert Property to map interface")
+				}
+				// log.Printf("here at thisProp")
+				thisProp := map[string]interface{}{
+					"prop_name": propi,
+				}
+				// log.Printf("conns is: %q \n", conns)
+				// fmt.Printf("checking propi: %v \n and pMap[value]: %v \n", propi, pMap["value"])
+				// log.Printf("here at pValue\n")
+				if pValue, ok := pMap["value"]; ok {
+					if pType, ok := pMap["type"]; ok {
+						// log.Printf("here at pValue: %v\n", pType)
+						// log.Printf("here at pMap: %q\n", pMap)
+						// pType = pMap["type"].(string)
+						switch {
+						case pType == "string":
+							thisProp["value_string"] = pMap["value"].(string)
+						case pType == "boolean":
+							thisProp["value_bool"] = pMap["value"].(bool)
+						default:
+							return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
+						}
+					} else {
+						switch pValue.(type) {
+						case string:
+							thisProp["value_string"] = pMap["value"].(string)
+						case bool:
+							thisProp["value_bool"] = pMap["value"].(bool)
+						default:
+							return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
+						}
+					}
+				} else {
+					if pType, ok := pMap["type"].(string); ok {
+						switch {
+						case pType == "string":
+							thisProp["value_string"] = ""
+						case pType == "boolean":
+							thisProp["value_bool"] = false
+						default:
+							return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
+						}
+					} else {
+						switch thisProp["value_string"].(type) {
+						case string:
+							thisProp["value_string"] = ""
+						case bool:
+							thisProp["value_bool"] = false
+						default:
+							return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
+						}
+					}
+				}
+
+				connProps = append(connProps, thisProp)
+			}
+			conn["properties"] = connProps
+			// conn["properties"] = []map[string]interface{}{
+			// 	{"prop_name": "aws_secret"}}
+		}
 		conns[i] = conn
+		fmt.Printf("conns[%v] issuccessful \n", i)
+		fmt.Printf("conns[i] is: %q \n", conns[i])
+		fmt.Printf("conn is: %q \n", conn)
 	}
 
+	// fmt.Printf("TRYING SETTINGCONN: %v \n", conns)
 	if err := d.Set("connections", conns); err != nil {
 		return diag.FromErr(err)
 	}

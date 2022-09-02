@@ -31,9 +31,11 @@ func Provider() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc("DAVINCI_COMPANY_ID", nil),
 			},
 		},
-		ResourcesMap: map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{
+			"dv_connection": resourceConnection(),
+		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"davinci_connections": dataSourceConnections(),
+			"dv_connections": dataSourceConnections(),
 		},
 		ConfigureContextFunc: providerConfigure,
 	}
