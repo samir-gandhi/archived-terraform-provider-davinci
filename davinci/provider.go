@@ -2,7 +2,6 @@ package davinci
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -47,16 +46,13 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	company_id := d.Get("company_id").(string)
 
 	var diags diag.Diagnostics
-	fmt.Printf("company_id is: %v\n", company_id)
-	// fmt.Printf("c.CompanyID is: %v\n", c.CompanyID)
-	diags = append(diags, diag.Diagnostic{
-		Severity: diag.Warning,
-		Summary:  "Provider Info",
-		Detail:   "This is the detailed warning message from providerConfigure",
-	})
+	// diags = append(diags, diag.Diagnostic{
+	// 	Severity: diag.Warning,
+	// 	Summary:  "Provider Info",
+	// 	Detail:   "This is the detailed warning message from providerConfigure",
+	// })
 
 	if (username != "") && (password != "") {
-		// fmt.Printf("username is: %s", username)
 		c, err := davinci.NewClient(nil, &username, &password)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
@@ -66,25 +62,15 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 			})
 			return nil, diags
 		}
-
+		if company_id != "" {
+			c.CompanyID = company_id
+		}
 		return c, diags
 	}
 	c, err := davinci.NewClient(nil, nil, nil)
 	if err != nil {
 		return nil, diag.FromErr(err)
 	}
-	fmt.Printf("company_id is: %v\n", company_id)
-	fmt.Printf("c.CompanyID is: %v\n", c.CompanyID)
-
-	if company_id != "" {
-		c.CompanyID = company_id
-	}
-
-	diags = append(diags, diag.Diagnostic{
-		Severity: diag.Warning,
-		Summary:  "FooBar",
-		Detail:   "This is the detailed warning message from providerConfigure",
-	})
 
 	return c, diags
 }

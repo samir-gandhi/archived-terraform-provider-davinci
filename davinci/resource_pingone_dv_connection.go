@@ -39,9 +39,25 @@ func resourceConnection() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"properties": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
+			"properties": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"value": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"type": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
 			},
 			//TODO - implement properties
 			// "properties": &schema.Schema{
