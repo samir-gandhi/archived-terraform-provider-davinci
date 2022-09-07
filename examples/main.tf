@@ -18,7 +18,7 @@ data "dv_connections" "all" {
 }
 
 output "dv_connections" {
-  value = data.dv_connections.all.connections.0
+  value = data.dv_connections.all.connections
 
 }
 

@@ -47,20 +47,20 @@ func dataSourceConnections() *schema.Resource {
 						},
 						"properties": {
 							Type:     schema.TypeSet,
-							Optional: true,
+							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"prop_name": {
+									"name": {
 										Type:     schema.TypeString,
-										Optional: true,
+										Computed: true,
 									},
-									"value_string": {
+									"value": {
 										Type:     schema.TypeString,
-										Optional: true,
+										Computed: true,
 									},
-									"value_bool": {
-										Type:     schema.TypeBool,
-										Optional: true,
+									"type": {
+										Type:     schema.TypeString,
+										Computed: true,
 									},
 								},
 							},
@@ -211,57 +211,86 @@ func dataSourceConnectionsRead(ctx context.Context, d *schema.ResourceData, m in
 				if pMap == nil {
 					return diag.Errorf("Unable to assert Property to map interface")
 				}
-				// log.Printf("here at thisProp")
 				thisProp := map[string]interface{}{
-					"prop_name": propi,
+					"name":  propi,
+					"value": "",
+				}
+				if pType, ok := pMap["type"].(string); ok {
+					log.Printf("pType is: %v", pType)
+					thisProp["type"] = pType
+					switch pType {
+					case "string", "":
+						if _, ok := pMap["value"].(string); ok {
+							thisProp["value"] = pMap["value"].(string)
+						}
+					case "boolean":
+						if pValue, ok := pMap["value"].(bool); ok {
+							thisProp["value"] = strconv.FormatBool(pValue)
+						}
+					default:
+						return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
+					}
+				} else {
+					switch pMap["value"].(type) {
+					case string:
+						if _, ok := pMap["value"].(string); ok {
+							thisProp["value"] = pMap["value"].(string)
+						}
+					case bool:
+						if pValue, ok := pMap["value"].(bool); ok {
+							thisProp["value"] = strconv.FormatBool(pValue)
+						}
+					default:
+						return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
+					}
 				}
 				// log.Printf("conns is: %q \n", conns)
 				// fmt.Printf("checking propi: %v \n and pMap[value]: %v \n", propi, pMap["value"])
 				// log.Printf("here at pValue\n")
-				if pValue, ok := pMap["value"]; ok {
-					if pType, ok := pMap["type"]; ok {
-						// log.Printf("here at pValue: %v\n", pType)
-						// log.Printf("here at pMap: %q\n", pMap)
-						// pType = pMap["type"].(string)
-						switch {
-						case pType == "string":
-							thisProp["value_string"] = pMap["value"].(string)
-						case pType == "boolean":
-							thisProp["value_bool"] = pMap["value"].(bool)
-						default:
-							return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
-						}
-					} else {
-						switch pValue.(type) {
-						case string:
-							thisProp["value_string"] = pMap["value"].(string)
-						case bool:
-							thisProp["value_bool"] = pMap["value"].(bool)
-						default:
-							return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
-						}
-					}
-				} else {
-					if pType, ok := pMap["type"].(string); ok {
-						switch {
-						case pType == "string":
-							thisProp["value_string"] = ""
-						case pType == "boolean":
-							thisProp["value_bool"] = false
-						default:
-							return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
-						}
-					} else {
-						switch thisProp["value_string"].(type) {
-						case string:
-							thisProp["value_string"] = ""
-						case bool:
-							thisProp["value_bool"] = false
-						default:
-							return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
-						}
-					}
-				}
+				// if pValue, ok := pMap["value"]; ok {
+				// 	if pType, ok := pMap["type"]; ok {
+				// 		// log.Printf("here at pValue: %v\n", pType)
+				// 		// log.Printf("here at pMap: %q\n", pMap)
+				// 		// pType = pMap["type"].(string)
+				// 		switch {
+				// 		case pType == "string":
+				// 			thisProp["value_string"] = pMap["value"].(string)
+				// 		case pType == "boolean":
+				// 			thisProp["value_bool"] = pMap["value"].(bool)
+				// 		default:
+				// 			return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
+				// 		}
+				// 	} else {
+				// 		switch pValue.(type) {
+				// 		case string:
+				// 			thisProp["value_string"] = pMap["value"].(string)
+				// 		case bool:
+				// 			thisProp["value_bool"] = pMap["value"].(bool)
+				// 		default:
+				// 			return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
+				// 		}
+				// 	}
+				// } else {
+				// 	if pType, ok := pMap["type"].(string); ok {
+				// 		switch {
+				// 		case pType == "string":
+				// 			thisProp["value_string"] = ""
+				// 		case pType == "boolean":
+				// 			thisProp["value_bool"] = false
+				// 		default:
+				// 			return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
+				// 		}
+				// 	} else {
+				// 		switch thisProp["value_string"].(type) {
+				// 		case string:
+				// 			thisProp["value_string"] = ""
+				// 		case bool:
+				// 			thisProp["value_bool"] = false
+				// 		default:
+				// 			return diag.Errorf("Unable to identify type of value in %v", thisProp["prop_name"])
+				// 		}
+				// 	}
+				// }
 
 				connProps = append(connProps, thisProp)
 			}
@@ -271,8 +300,8 @@ func dataSourceConnectionsRead(ctx context.Context, d *schema.ResourceData, m in
 		}
 		conns[i] = conn
 		fmt.Printf("conns[%v] issuccessful \n", i)
-		fmt.Printf("conns[i] is: %q \n", conns[i])
-		fmt.Printf("conn is: %q \n", conn)
+		// fmt.Printf("conns[i] is: %q \n", conns[i])
+		// fmt.Printf("conn is: %q \n", conn)
 	}
 
 	// fmt.Printf("TRYING SETTINGCONN: %v \n", conns)
