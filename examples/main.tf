@@ -9,9 +9,10 @@ terraform {
 }
 
 provider "dv" {
-  username   = var.dv_username
-  password   = var.dv_password
-  company_id = "dcf2011c-d0fc-4b59-81bc-518c8eec3dab"
+  username = var.dv_username
+  password = var.dv_password
+  # company_id = "dcf2011c-d0fc-4b59-81bc-518c8eec3dab"
+  base_url = var.dv_url
 }
 
 data "dv_connections" "all" {
@@ -22,10 +23,23 @@ output "dv_connections" {
 
 }
 
-# resource "dv_connection" "annotation" {
-#   name         = "myAnnotationConnector"
-#   connector_id = "annotationConnector"
-# }
+resource "dv_connection" "annotation" {
+  name         = "myAnnotationConnector"
+  connector_id = "annotationConnector"
+}
+
+resource "dv_connection" "crowd_strike" {
+  connector_id = "crowdStrikeConnector"
+  name         = "CrowdStrike2"
+  properties {
+    name  = "clientId"
+    value = "1234"
+  }
+  properties {
+    name  = "clientSecret"
+    value = "1234"
+  }
+}
 
 
 # output "connection_one" {

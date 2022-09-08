@@ -2,6 +2,7 @@ package davinci
 
 import (
 	"context"
+	// "fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -29,6 +30,12 @@ func Provider() *schema.Provider {
 				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc("DAVINCI_COMPANY_ID", nil),
 			},
+			"base_url": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Sensitive:   true,
+				DefaultFunc: schema.EnvDefaultFunc("DAVINCI_BASE_URL", nil),
+			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
 			"dv_connection": resourceConnection(),
@@ -44,6 +51,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	username := d.Get("username").(string)
 	password := d.Get("password").(string)
 	company_id := d.Get("company_id").(string)
+	base_url := d.Get("base_url").(string)
 
 	var diags diag.Diagnostics
 	// diags = append(diags, diag.Diagnostic{
@@ -53,7 +61,7 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	// })
 
 	if (username != "") && (password != "") {
-		c, err := davinci.NewClient(nil, &username, &password)
+		c, err := davinci.NewClient(&base_url, &username, &password)
 		if err != nil {
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Error,

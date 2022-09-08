@@ -120,7 +120,7 @@ func dataSourceConnectionsRead(ctx context.Context, d *schema.ResourceData, m in
 							thisProp["value"] = strconv.FormatBool(pValue)
 						}
 					default:
-						return diag.Errorf("Unable to identify type of value in %v. \nOnly string or boolean is supported", thisProp["prop_name"])
+						return diag.Errorf("For Connection '%v' and Property '%v': unable to identify value type, only string or boolean is currently supported", connItem.Name, thisProp["name"])
 					}
 				} else {
 					switch pMap["value"].(type) {
@@ -133,7 +133,7 @@ func dataSourceConnectionsRead(ctx context.Context, d *schema.ResourceData, m in
 							thisProp["value"] = strconv.FormatBool(pValue)
 						}
 					default:
-						return diag.Errorf("Unable to identify type of value in %v. \nOnly string or boolean is supported", thisProp["prop_name"])
+						return diag.Errorf("For Connection '%v' and Property '%v': unable to identify value type, only string or boolean is currently supported", connItem.Name, thisProp["name"])
 					}
 				}
 				connProps = append(connProps, thisProp)

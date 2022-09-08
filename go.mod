@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.21.0
-	github.com/samir-gandhi/davinci-client-go v0.0.2
+	github.com/samir-gandhi/davinci-client-go v0.0.3
 )
 
 require (
