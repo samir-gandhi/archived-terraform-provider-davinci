@@ -37,7 +37,7 @@ resource "dv_connection" "crowd_strike" {
   }
   properties {
     name  = "clientSecret"
-    value = "1234"
+    value = "1234567"
   }
 }
 

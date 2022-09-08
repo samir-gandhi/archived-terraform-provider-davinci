@@ -92,18 +92,8 @@ func resourceConnectionCreate(ctx context.Context, d *schema.ResourceData, m int
 		ConnectorID: d.Get("connector_id").(string),
 		Name:        d.Get("name").(string),
 	}
-	// properties
-	connProps := dv.Properties{}
-	props := d.Get("properties").(*schema.Set).List()
-	// fmt.Printf(props)
-	for _, raw := range props {
-		fmt.Printf("\nThis prop is: %v\n", raw)
-		prop := raw.(map[string]interface{})
-		connProps[prop["name"].(string)] = map[string]interface{}{
-			"value": prop["value"].(string),
-		}
-	}
-	connection.Properties = connProps
+
+	connection.Properties = *makeProperties(d)
 
 	res, err := c.CreateInitializedConnection(&c.CompanyID, &connection)
 	if err != nil {
@@ -157,15 +147,23 @@ func resourceConnectionRead(ctx context.Context, d *schema.ResourceData, m inter
 }
 
 func resourceConnectionUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	// c := m.(*dv.Client)
-	var diags diag.Diagnostics
-	// connId := d.Id()
+	c := m.(*dv.Client)
+	connId := d.Id()
+	if d.HasChange("properties") {
+		connection := dv.Connection{
+			ConnectorID:  d.Get("connector_id").(string),
+			Name:         d.Get("name").(string),
+			ConnectionID: connId,
+		}
 
-	// if d.HasChange("properties") {
+		connection.Properties = *makeProperties(d)
+		_, err := c.UpdateConnection(&c.CompanyID, &connection)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
 
-	// }
-
-	return diags
+	return resourceConnectionRead(ctx, d, m)
 }
 
 func resourceConnectionDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -220,4 +218,18 @@ func flattenConnectionProperties(connectionProperties *dv.Properties) ([]map[str
 		connProps = append(connProps, thisProp)
 	}
 	return connProps, nil
+}
+
+func makeProperties(d *schema.ResourceData) *dv.Properties {
+	connProps := dv.Properties{}
+	props := d.Get("properties").(*schema.Set).List()
+	// fmt.Printf(props)
+	for _, raw := range props {
+		fmt.Printf("\nThis prop is: %v\n", raw)
+		prop := raw.(map[string]interface{})
+		connProps[prop["name"].(string)] = map[string]interface{}{
+			"value": prop["value"].(string),
+		}
+	}
+	return &connProps
 }
