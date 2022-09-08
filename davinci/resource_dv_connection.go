@@ -167,7 +167,16 @@ func resourceConnectionUpdate(ctx context.Context, d *schema.ResourceData, m int
 }
 
 func resourceConnectionDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	c := m.(*dv.Client)
 	var diags diag.Diagnostics
+	connId := d.Id()
+
+	_, err := c.DeleteConnection(&c.CompanyID, connId)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.SetId("")
 
 	return diags
 }
